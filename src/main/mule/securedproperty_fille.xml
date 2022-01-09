@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="28aed7be-f48d-4bb8-b806-84b3ba7dd798" >
+		<http:listener-connection host="${secure::http.host}" port="${secure::http.port}" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="b43fdc70-9cd9-4f5b-b7a1-a212c00a8898" >
+		<db:my-sql-connection host="${secure::db.host}" port="${secure::db.port}" user="${secure::db.username}" password="${secure::db.password}" database="${secure::db.database}" />
+	</db:config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="2a90776e-e8dc-493a-8941-3debafeecccc" >
+		<http:request-connection host="${secure::united.host}" port="${secure::united.port}" />
+	</http:request-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="e6567d59-265f-4ac8-85c5-43be5619268e" file="config.properties" key="${secure.key}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<flow name="securedproperty_filleFlow" doc:id="b375dd29-4ffa-433b-9d9e-0fa53c27a8cb" >
+		<http:listener doc:name="Listener" doc:id="01b652e6-4f02-49e6-95e7-4dd96ed1d259" config-ref="HTTP_Listener_config" path="/secureprop"/>
+		<db:select doc:name="Select" doc:id="246ffd97-5ae0-4041-be23-ed59436147c1" config-ref="Database_Config" target="american">
+			<db:sql ><![CDATA[select * from american ]]></db:sql>
+		</db:select>
+		<http:request method="GET" doc:name="Request" doc:id="965419d4-1cdf-414c-bd43-f5edda7f3c97" config-ref="HTTP_Request_configuration" path="/united/flights" target="united"/>
+		<ee:transform doc:name="Transform Message" doc:id="58cda959-e906-432b-b6c6-c055ccc47c6e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+flights:{
+	american: vars.american,
+	united: vars.united
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
